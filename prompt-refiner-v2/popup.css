@@ -1,0 +1,438 @@
+/* PromptCraft – Popup Styles */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 340px;
+  background: #0a0a16;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Container ──────────────────────────────────────────────────────────── */
+
+.popup-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #1a1a2e, #252540);
+  border: 1px solid rgba(255, 200, 80, 0.35);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #ffc850;
+  box-shadow: 0 0 12px rgba(255, 200, 80, 0.12);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.logo-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffc850;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.logo-tagline {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
+}
+
+/* Status Badge */
+.header-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  transition: all 0.3s ease;
+}
+
+.header-badge.is-active {
+  background: rgba(100, 220, 140, 0.08);
+  border-color: rgba(100, 220, 140, 0.25);
+  color: #64dc8c;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.3s ease;
+}
+
+.header-badge.is-active .badge-dot {
+  background: #64dc8c;
+  box-shadow: 0 0 6px rgba(100, 220, 140, 0.6);
+  animation: pulse-dot 2s ease infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Accent Bar */
+.accent-bar {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 200, 80, 0.3) 30%, rgba(255, 200, 80, 0.5) 50%, rgba(255, 200, 80, 0.3) 70%, transparent 100%);
+  margin: 0 20px;
+}
+
+/* ─── Main ───────────────────────────────────────────────────────────────── */
+
+.popup-main {
+  flex: 1;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Section ────────────────────────────────────────────────────────────── */
+
+.setting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.section-icon {
+  font-size: 15px;
+  margin-top: 1px;
+}
+
+.section-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.2;
+}
+
+.section-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 2px;
+}
+
+/* ─── Input ──────────────────────────────────────────────────────────────── */
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.api-input {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'DM Sans', monospace;
+  font-size: 12.5px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.api-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.05em;
+}
+
+.api-input:focus {
+  border-color: rgba(255, 200, 80, 0.4);
+  background: rgba(255, 200, 80, 0.03);
+  box-shadow: 0 0 0 3px rgba(255, 200, 80, 0.07);
+}
+
+.api-input.is-valid {
+  border-color: rgba(100, 220, 140, 0.4);
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.toggle-visibility:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
+
+.key-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+  border: none;
+}
+
+.btn-primary {
+  flex: 1;
+  justify-content: center;
+  background: linear-gradient(135deg, #c49a00, #ffc850);
+  color: #0a0a14;
+  box-shadow: 0 3px 14px rgba(255, 200, 80, 0.25);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(255, 200, 80, 0.4);
+  filter: brightness(1.05);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary.btn--success {
+  background: linear-gradient(135deg, #2d7a46, #64dc8c);
+  box-shadow: 0 3px 14px rgba(100, 220, 140, 0.25);
+}
+
+.btn-icon {
+  font-size: 11px;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ─── Get Key Link ───────────────────────────────────────────────────────── */
+
+.get-key-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  color: rgba(255, 200, 80, 0.6);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  width: fit-content;
+}
+
+.get-key-link:hover {
+  color: #ffc850;
+}
+
+/* ─── Divider ────────────────────────────────────────────────────────────── */
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 -2px;
+}
+
+/* ─── How It Works ───────────────────────────────────────────────────────── */
+
+.how-section, .sites-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-title-sm {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.steps-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.step-num {
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 200, 80, 0.1);
+  border: 1px solid rgba(255, 200, 80, 0.25);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #ffc850;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-text {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+}
+
+.step-text strong {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+/* ─── Sites Grid ─────────────────────────────────────────────────────────── */
+
+.sites-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.site-chip {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Inline error ───────────────────────────────────────────────────────── */
+
+.inline-error {
+  font-size: 11px;
+  color: #ff8080;
+  padding-left: 2px;
+  margin-top: 2px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+
+.popup-footer {
+  padding: 12px 20px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.03em;
+}
+
+.footer-dot {
+  color: rgba(255, 255, 255, 0.12);
+}
+
+.footer-brand {
+  font-size: 10.5px;
+  color: rgba(255, 200, 80, 0.45);
+  letter-spacing: 0.02em;
+  transition: color 0.2s ease;
+}
+
+.footer-brand strong {
+  font-weight: 700;
+  color: rgba(255, 200, 80, 0.65);
+}
+
+.popup-footer:hover .footer-brand {
+  color: rgba(255, 200, 80, 0.75);
+}
+
+.popup-footer:hover .footer-brand strong {
+  color: #ffc850;
+}

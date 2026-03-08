@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PromptCraft Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-container">
+
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="header-logo">
+        <div class="logo-icon">✦</div>
+        <div class="logo-text">
+          <span class="logo-name">PromptCraft</span>
+          <span class="logo-tagline">AI Prompt Refiner</span>
+        </div>
+      </div>
+      <div class="header-badge" id="status-badge">
+        <span class="badge-dot"></span>
+        <span class="badge-label" id="badge-label">Not configured</span>
+      </div>
+    </header>
+
+    <!-- Decorative bar -->
+    <div class="accent-bar"></div>
+
+    <!-- Main Content -->
+    <main class="popup-main">
+
+      <!-- API Key Section -->
+      <section class="setting-section">
+        <div class="section-header">
+          <div class="section-icon">🔑</div>
+          <div>
+            <div class="section-title">Gemini API Key</div>
+            <div class="section-desc">Required to refine your prompts</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="api-key-input"
+              class="api-input"
+              placeholder="AIza••••••••••••••••••••••••••••••"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="toggle-visibility" id="toggle-visibility" title="Show/hide key">
+              <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="key-actions">
+          <button class="btn btn-primary" id="save-btn">
+            <span class="btn-icon">✦</span>
+            <span id="save-label">Save API Key</span>
+          </button>
+          <button class="btn btn-ghost" id="clear-btn">Clear</button>
+        </div>
+
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="get-key-link">
+          Get a free Gemini API key →
+        </a>
+      </section>
+
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- How it works -->
+      <section class="how-section">
+        <div class="section-title-sm">How it works</div>
+        <ol class="steps-list">
+          <li class="step">
+            <span class="step-num">1</span>
+            <span class="step-text">Type your prompt in any supported AI chatbot</span>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <span class="step-text">A <strong>✦ Refine Prompt</strong> button appears</span>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <span class="step-text">Click it to get an AI-enhanced version</span>
+          </li>
+          <li class="step">
+            <span class="step-num">4</span>
+            <span class="step-text">Review, edit, and insert with one click</span>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Supported Sites -->
+      <section class="sites-section">
+        <div class="section-title-sm">Supported sites</div>
+        <div class="sites-grid">
+          <div class="site-chip">ChatGPT</div>
+          <div class="site-chip">Gemini</div>
+          <div class="site-chip">Claude</div>
+          <div class="site-chip">Perplexity</div>
+          <div class="site-chip">Copilot</div>
+          <div class="site-chip">Poe</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <div class="footer-top">
+        <span>Powered by Gemini API</span>
+        <span class="footer-dot">·</span>
+        <span>v1.1.0</span>
+      </div>
+      <div class="footer-brand">
+        Made by <strong>codecafereels</strong>
+      </div>
+    </footer>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
