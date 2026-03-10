@@ -114,14 +114,27 @@
         </div>
       </section>
 
+      <!-- Model Status -->
+      <section class="model-section">
+        <div class="section-title-sm">Model Status</div>
+        <div class="model-status-box" id="model-status-box">
+          <div class="model-status-row">
+            <span class="model-dot" id="model-dot"></span>
+            <span class="model-name" id="model-name">Not tested yet</span>
+          </div>
+          <button class="btn-detect" id="detect-btn">
+            <span id="detect-label">⟳ Auto-detect best model</span>
+          </button>
+        </div>
+      </section>
+
     </main>
 
     <!-- Footer -->
     <footer class="popup-footer">
       <div class="footer-top">
-        <span>Powered by Gemini API</span>
-        <span class="footer-dot">·</span>
-        <span>v1.1.0</span>
+        <span>Active model:</span>
+        <span class="footer-model" id="footer-model">auto-detecting…</span>
       </div>
       <div class="footer-brand">
         Made by <strong>codecafereels</strong>

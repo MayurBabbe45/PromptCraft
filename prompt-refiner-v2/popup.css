@@ -383,6 +383,102 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* ─── Model Status ───────────────────────────────────────────────────────── */
+
+.model-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-status-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.model-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.model-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.model-dot.dot-ok    { background: #64dc8c; box-shadow: 0 0 6px rgba(100,220,140,0.5); }
+.model-dot.dot-err   { background: #ff6b6b; }
+.model-dot.dot-spin  { background: #ffc850; animation: pc-pulse 1s ease infinite; }
+
+@keyframes pc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.model-name {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'DM Mono', 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+
+.model-name.name-ok  { color: rgba(100, 220, 140, 0.85); }
+.model-name.name-err { color: rgba(255, 107, 107, 0.8); }
+
+.btn-detect {
+  flex-shrink: 0;
+  padding: 6px 11px;
+  background: rgba(255, 200, 80, 0.08);
+  border: 1px solid rgba(255, 200, 80, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 200, 80, 0.7);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-detect:hover {
+  background: rgba(255, 200, 80, 0.15);
+  color: #ffc850;
+  border-color: rgba(255, 200, 80, 0.45);
+}
+
+.btn-detect:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── Footer model pill ──────────────────────────────────────────────────── */
+
+.footer-model {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 9.5px;
+  color: rgba(255, 200, 80, 0.55);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── Inline error ───────────────────────────────────────────────────────── */
 
 .inline-error {

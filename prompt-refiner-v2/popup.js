@@ -1,6 +1,6 @@
 /**
  * PromptCraft – Popup Script (v1.1.0)
- * Security hardened: input sanitization, safe storage, no hardcoded secrets.
+ * Security hardened + live model auto-detection.
  */
 
 (function () {
@@ -13,55 +13,143 @@
   const statusBadge = document.getElementById("status-badge");
   const badgeLabel  = document.getElementById("badge-label");
   const toggleBtn   = document.getElementById("toggle-visibility");
+  const detectBtn   = document.getElementById("detect-btn");
+  const detectLabel = document.getElementById("detect-label");
+  const modelDot    = document.getElementById("model-dot");
+  const modelName   = document.getElementById("model-name");
+  const footerModel = document.getElementById("footer-model");
 
-  // ─── Input sanitization ───────────────────────────────────────────────────
-  // Strip non-printable ASCII — prevents injection of control characters
+  // ─── Sanitization & validation ────────────────────────────────────────────
   function sanitizeApiKey(raw) {
     return raw.replace(/[^\x20-\x7E]/g, "").trim();
   }
-
-  // Gemini keys are "AIza" + 35+ alphanumeric/dash chars
   function isValidKeyFormat(key) {
     return /^AIza[A-Za-z0-9_\-]{35,}$/.test(key);
   }
 
-  // ─── Load saved key on open ───────────────────────────────────────────────
-  chrome.storage.sync.get(["geminiApiKey"], (result) => {
+  // ─── Model detection ──────────────────────────────────────────────────────
+  const FALLBACK_MODELS = [
+    "gemini-2.5-flash-preview-05-20",
+    "gemini-2.5-flash-preview-04-17",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b-latest",
+    "gemini-1.5-pro-latest",
+  ];
+
+  async function fetchAvailableModels(apiKey) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return (data.models || [])
+      .filter(m =>
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes("generateContent") &&
+        /gemini.*(flash|pro)/i.test(m.name) &&
+        !/embed|vision|aqa/i.test(m.name)
+      )
+      .map(m => m.name.replace("models/", ""))
+      .sort((a, b) => {
+        const score = n => /lite/i.test(n) ? 0 : /flash/i.test(n) ? 1 : 2;
+        return score(a) - score(b);
+      });
+  }
+
+  async function pingModel(apiKey, model) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "hi" }] }],
+          generationConfig: { maxOutputTokens: 5 }
+        })
+      }
+    );
+    return res.ok;
+  }
+
+  async function autoDetectModel(apiKey) {
+    setModelUI("detecting", "Fetching model list…");
+
+    let models;
+    try {
+      models = await fetchAvailableModels(apiKey);
+      if (models.length === 0) throw new Error("Empty list");
+    } catch (e) {
+      setModelUI("detecting", "Using fallback list…");
+      models = FALLBACK_MODELS;
+    }
+
+    for (const m of models) {
+      setModelUI("detecting", `Testing ${m}…`);
+      try {
+        const ok = await pingModel(apiKey, m);
+        if (ok) {
+          setModelUI("ok", m);
+          chrome.storage.sync.set({ lastWorkingModel: m });
+          return m;
+        }
+      } catch (_) { /* try next */ }
+    }
+
+    setModelUI("err", "No working model found");
+    return null;
+  }
+
+  function setModelUI(state, label) {
+    modelDot.className = "model-dot";
+    modelName.className = "model-name";
+
+    if (state === "ok") {
+      modelDot.classList.add("dot-ok");
+      modelName.classList.add("name-ok");
+    } else if (state === "err") {
+      modelDot.classList.add("dot-err");
+      modelName.classList.add("name-err");
+    } else {
+      modelDot.classList.add("dot-spin");
+    }
+
+    modelName.textContent = label;
+    if (footerModel) footerModel.textContent = state === "ok" ? label : "—";
+  }
+
+  // ─── Load saved state ─────────────────────────────────────────────────────
+  chrome.storage.sync.get(["geminiApiKey", "lastWorkingModel"], (result) => {
     if (chrome.runtime.lastError) return;
     if (result.geminiApiKey) {
       apiInput.value = result.geminiApiKey;
       apiInput.classList.add("is-valid");
       setActiveStatus(true);
     }
+    if (result.lastWorkingModel) {
+      setModelUI("ok", result.lastWorkingModel);
+    }
   });
 
   // ─── Save ─────────────────────────────────────────────────────────────────
   saveBtn.addEventListener("click", () => {
     const key = sanitizeApiKey(apiInput.value);
-
-    if (!key) {
-      shake(apiInput);
-      showInlineError("Please enter your Gemini API key.");
-      return;
-    }
-
+    if (!key) { shake(apiInput); showInlineError("Please enter your API key."); return; }
     if (!isValidKeyFormat(key)) {
       shake(apiInput);
-      showInlineError("Invalid format. Key must start with 'AIza' followed by 35+ characters.");
+      showInlineError("Invalid format. Must start with 'AIza' + 35 chars.");
       return;
     }
-
-    // Only the key string is stored — no metadata, no user data
     chrome.storage.sync.set({ geminiApiKey: key }, () => {
-      if (chrome.runtime.lastError) {
-        showInlineError("Save failed. Try again.");
-        return;
-      }
+      if (chrome.runtime.lastError) { showInlineError("Save failed. Try again."); return; }
       apiInput.classList.add("is-valid");
       saveBtn.classList.add("btn--success");
       saveLabel.textContent = "✓ Saved!";
       setActiveStatus(true);
-
+      // Auto-detect after saving
+      autoDetectModel(key);
       setTimeout(() => {
         saveBtn.classList.remove("btn--success");
         saveLabel.textContent = "Save API Key";
@@ -71,25 +159,38 @@
 
   // ─── Clear ────────────────────────────────────────────────────────────────
   clearBtn.addEventListener("click", () => {
-    chrome.storage.sync.remove(["geminiApiKey"], () => {
+    chrome.storage.sync.remove(["geminiApiKey", "lastWorkingModel"], () => {
       if (chrome.runtime.lastError) return;
       apiInput.value = "";
       apiInput.classList.remove("is-valid");
       setActiveStatus(false);
+      setModelUI("idle", "Not tested yet");
       removeInlineError();
     });
   });
 
-  // ─── Toggle key visibility ────────────────────────────────────────────────
+  // ─── Detect button ────────────────────────────────────────────────────────
+  detectBtn.addEventListener("click", async () => {
+    const key = sanitizeApiKey(apiInput.value);
+    if (!key || !isValidKeyFormat(key)) {
+      showInlineError("Save a valid API key first.");
+      shake(apiInput);
+      return;
+    }
+    detectBtn.disabled = true;
+    detectLabel.textContent = "⟳ Detecting…";
+    await autoDetectModel(key);
+    detectBtn.disabled = false;
+    detectLabel.textContent = "⟳ Auto-detect best model";
+  });
+
+  // ─── Toggle visibility ────────────────────────────────────────────────────
   let isVisible = false;
   toggleBtn.addEventListener("click", () => {
     isVisible = !isVisible;
     apiInput.type = isVisible ? "text" : "password";
-
-    // Safe SVG update via DOM API — no innerHTML
     const svg = toggleBtn.querySelector("svg");
     while (svg.firstChild) svg.removeChild(svg.firstChild);
-
     if (isVisible) {
       svg.appendChild(makeSvgEl("path", { d: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" }));
       svg.appendChild(makeSvgEl("path", { d: "M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" }));
@@ -106,10 +207,7 @@
     return el;
   }
 
-  // ─── Enter key ────────────────────────────────────────────────────────────
-  apiInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") saveBtn.click();
-  });
+  apiInput.addEventListener("keydown", (e) => { if (e.key === "Enter") saveBtn.click(); });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   function setActiveStatus(active) {
@@ -129,7 +227,7 @@
     const err = document.createElement("div");
     err.id = "inline-error";
     err.className = "inline-error";
-    err.textContent = msg; // safe: textContent, not innerHTML
+    err.textContent = msg;
     apiInput.closest(".input-group").appendChild(err);
     setTimeout(removeInlineError, 3500);
   }
@@ -138,9 +236,6 @@
     document.getElementById("inline-error")?.remove();
   }
 
-  // ─── Inject keyframe animations ───────────────────────────────────────────
-  // Must be injected this way because CSP blocks inline <style> with 'unsafe-inline'
-  // These are non-sensitive presentational keyframes only
   const raf = document.createElement("style");
   raf.textContent = [
     "@keyframes pc-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}",

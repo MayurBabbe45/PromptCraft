@@ -301,82 +301,165 @@
     return div.innerHTML;
   }
 
-  // ─── Gemini API ───────────────────────────────────────────────────────────
+  // ─── Gemini API – Auto-discovery + Smart Fallback ────────────────────────
 
-  // Try models in order until one works
-  const GEMINI_MODELS = [
-    "gemini-3-flash-preview",
-    "gemini-3-flash-preview-0514",
+  // Fallback list used if the /models endpoint fails
+  const FALLBACK_MODELS = [
+    "gemini-2.5-flash-preview-05-20",
     "gemini-2.5-flash-preview-04-17",
-    "gemini-2.5-flash-preview",
-    "gemini-3.1-flash-lite-preview",
-    "gemini-2.5-flash-lite-preview",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b-latest",
+    "gemini-1.5-pro-latest",
   ];
 
-  async function callGeminiAPIWithModel(prompt, apiKey, model) {
-    const fullPrompt = `You are an expert prompt engineer. Rewrite the following prompt to be clearer, more specific, and more effective for AI systems. Keep the same intent. Return ONLY the improved prompt with no explanation or preamble.
+  // In-memory cache so we don't re-discover on every click
+  let _cachedModels = null;
+  let _lastWorkingModel = null;
 
-Original prompt:
-${prompt}
+  /**
+   * Fetch the live list of models from the API, filtered to
+   * generateContent-capable flash/pro models, ordered by preference.
+   */
+  async function discoverModels(apiKey) {
+    // Return cached list if available
+    if (_cachedModels) return _cachedModels;
 
-Improved prompt:`;
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`,
+        { method: "GET", headers: { "Content-Type": "application/json" } }
+      );
 
-    const requestBody = {
-      contents: [{
-        parts: [{ text: fullPrompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1024,
+      if (!res.ok) throw new Error(`List models HTTP ${res.status}`);
+      const data = await res.json();
+
+      const available = (data.models || [])
+        .filter(m =>
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes("generateContent") &&
+          // Only lightweight flash/lite models (not vision-only or embed)
+          /gemini.*(flash|pro)/i.test(m.name) &&
+          !/embed|vision|aqa/i.test(m.name)
+        )
+        .map(m => m.name.replace("models/", ""))
+        // Prefer flash-lite → flash → pro (faster & cheaper for prompt refining)
+        .sort((a, b) => {
+          const score = (n) => {
+            if (/lite/i.test(n)) return 0;
+            if (/flash/i.test(n)) return 1;
+            return 2;
+          };
+          return score(a) - score(b);
+        });
+
+      console.log("[PromptCraft] Discovered models:", available);
+
+      // Put last working model first for faster resolution
+      if (_lastWorkingModel && available.includes(_lastWorkingModel)) {
+        const idx = available.indexOf(_lastWorkingModel);
+        available.splice(idx, 1);
+        available.unshift(_lastWorkingModel);
       }
-    };
 
-    const response = await fetch(
+      _cachedModels = available.length > 0 ? available : FALLBACK_MODELS;
+    } catch (e) {
+      console.warn("[PromptCraft] Model discovery failed, using fallback list:", e.message);
+      _cachedModels = FALLBACK_MODELS;
+    }
+
+    return _cachedModels;
+  }
+
+  async function callGeminiAPIWithModel(prompt, apiKey, model) {
+    const fullPrompt =
+      `You are an expert prompt engineer. Rewrite the following prompt to be clearer, ` +
+      `more specific, and more effective for AI systems. Keep the same core intent. ` +
+      `Return ONLY the improved prompt — no explanation, no preamble, no quotes.\n\n` +
+      `Original prompt:\n${prompt}\n\nImproved prompt:`;
+
+    const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+        })
       }
     );
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const status = response.status;
-      const errMsg = errData?.error?.message || `HTTP ${status}`;
-      // 429 = quota, 404 = model not found — both are retriable with next model
-      if (status === 429 || status === 404 || status === 400) {
-        throw new Error(`RETRY:${errMsg}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const status = res.status;
+      const msg = errData?.error?.message || `HTTP ${status}`;
+      // These statuses mean "try the next model"
+      if (status === 400 || status === 404 || status === 429 || status === 503) {
+        throw new Error(`RETRY:${status}:${msg}`);
       }
-      throw new Error(errMsg);
+      throw new Error(msg); // 401 invalid key etc — no point retrying
     }
 
-    const data = await response.json();
+    const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("No response from Gemini API");
+    if (!text) throw new Error("Empty response from Gemini");
     return text.trim();
   }
 
   async function callGeminiAPI(prompt, apiKey) {
+    // Step 1: get ordered model list (live or cached)
+    const models = await discoverModels(apiKey);
     let lastError = null;
-    for (const model of GEMINI_MODELS) {
+    let attemptCount = 0;
+
+    for (const model of models) {
+      attemptCount++;
+      // Update button label to show which model is being tried
+      if (attemptCount > 1 && refineButton) {
+        const shortName = model.replace(/gemini-/i, "").replace(/-preview.*/, "…");
+        refineButton.querySelector(".promptcraft-btn-text").textContent =
+          `Trying ${shortName}…`;
+      }
+
       try {
         const result = await callGeminiAPIWithModel(prompt, apiKey, model);
+
+        // ✅ Success — remember this model for next time
+        _lastWorkingModel = model;
+        // Bust the cache so it re-sorts with this model first next call
+        _cachedModels = null;
+        // Persist working model so popup can display it
+        chrome.storage.sync.set({ lastWorkingModel: model });
+
+        if (attemptCount > 1) {
+          console.log(`[PromptCraft] ✓ Switched to working model: ${model}`);
+          showToast(`✦ Switched to ${model}`, "info");
+        }
+
         return result;
       } catch (err) {
         lastError = err;
         if (err.message.startsWith("RETRY:")) {
-          console.warn(`[PromptCraft] Model ${model} failed: ${err.message.replace("RETRY:","")}`);
+          const [, status, detail] = err.message.split(":");
+          console.warn(`[PromptCraft] Model "${model}" failed (HTTP ${status}): ${detail} — trying next…`);
+          // Invalidate cache so next call re-discovers
+          _cachedModels = null;
           continue;
         }
+        // Non-retriable (e.g. 401 bad API key) — stop immediately
         throw err;
       }
     }
-    const msg = (lastError?.message || "").replace("RETRY:", "");
-    if (msg.includes("quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-      throw new Error("Quota exceeded. Please get a new API key at aistudio.google.com/app/apikey");
+
+    // All models failed
+    const raw = (lastError?.message || "").replace(/^RETRY:\d+:/, "");
+    if (/quota|RESOURCE_EXHAUSTED|429/i.test(raw)) {
+      throw new Error("All models quota exceeded. Please generate a new API key at aistudio.google.com/app/apikey");
     }
-    throw new Error(msg || "All Gemini models failed");
+    throw new Error(`All ${models.length} models failed. Last error: ${raw}`);
   }
 
   // ─── Main Handler ─────────────────────────────────────────────────────────
