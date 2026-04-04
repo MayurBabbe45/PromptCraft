@@ -11,6 +11,12 @@
   const BUTTON_ID = "promptcraft-refine-btn";
   const MODAL_ID = "promptcraft-modal";
   const OVERLAY_ID = "promptcraft-overlay";
+  const DEFAULT_PROMPT_TYPE = "refactor";
+  const PROMPT_TYPE_INSTRUCTIONS = {
+    refactor: `You are an expert prompt engineer. Rewrite the following prompt to be clearer, more specific, and more effective for AI systems. Keep the same core intent. Return ONLY the improved prompt — no explanation, no preamble, no quotes.`,
+    detailed: `You are an expert prompt engineer. Rewrite the following prompt to maintain intent while adding helpful detail and clarity, making it more descriptive and informative for AI systems. Keep the original goal intact. Return ONLY the improved prompt — no explanation, no preamble, no quotes.`,
+    deep: `You are an expert prompt engineer. Rewrite the following prompt into a fully detailed, deeply descriptive prompt with strong context, explicit instructions, and polished structure for best AI understanding. Keep the original goal intact. Return ONLY the improved prompt — no explanation, no preamble, no quotes.`,
+  };
 
   // Site-specific selectors for the prompt input field
   const INPUT_SELECTORS = [
@@ -71,20 +77,39 @@
     }
   }
 
+  function buildPromptPayload(prompt, type) {
+    const instruction = PROMPT_TYPE_INSTRUCTIONS[type] || PROMPT_TYPE_INSTRUCTIONS[DEFAULT_PROMPT_TYPE];
+    return `${instruction}\n\nOriginal prompt:\n${prompt}\n\nImproved prompt:`;
+  }
+
   function positionButtonNearInput(input) {
     if (!refineButton || !input) return;
 
     const rect = input.getBoundingClientRect();
+    const buttonRect = refineButton.getBoundingClientRect();
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const buttonWidth = buttonRect.width || 150;
+    const buttonHeight = buttonRect.height || 42;
 
-    // Place button at bottom-right of the input field
-    let top = rect.bottom + scrollY - 44;
-    let left = rect.right + scrollX - 148;
+    // Prefer placing the button above the input field to avoid covering the prompt text.
+    let top = rect.top + scrollY - buttonHeight - 10;
+    let left = rect.right + scrollX - buttonWidth;
 
-    // Boundary checks
-    if (left < scrollX + 8) left = scrollX + 8;
-    if (top < scrollY + 8) top = scrollY + 8;
+    // If there isn't enough room above, place it below the input instead.
+    if (top < scrollY + 8) {
+      top = rect.bottom + scrollY + 10;
+    }
+
+    // Keep the button within the viewport horizontally.
+    if (left < scrollX + 8) {
+      left = Math.max(scrollX + 8, rect.left + scrollX);
+    }
+    if (left + buttonWidth > scrollX + viewportWidth - 8) {
+      left = Math.max(scrollX + 8, rect.left + scrollX);
+    }
 
     refineButton.style.top = `${top}px`;
     refineButton.style.left = `${left}px`;
@@ -373,12 +398,8 @@
     return _cachedModels;
   }
 
-  async function callGeminiAPIWithModel(prompt, apiKey, model) {
-    const fullPrompt =
-      `You are an expert prompt engineer. Rewrite the following prompt to be clearer, ` +
-      `more specific, and more effective for AI systems. Keep the same core intent. ` +
-      `Return ONLY the improved prompt — no explanation, no preamble, no quotes.\n\n` +
-      `Original prompt:\n${prompt}\n\nImproved prompt:`;
+  async function callGeminiAPIWithModel(prompt, apiKey, model, promptType) {
+    const fullPrompt = buildPromptPayload(prompt, promptType);
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -409,7 +430,7 @@
     return text.trim();
   }
 
-  async function callGeminiAPI(prompt, apiKey) {
+  async function callGeminiAPI(prompt, apiKey, promptType) {
     // Step 1: get ordered model list (live or cached)
     const models = await discoverModels(apiKey);
     let lastError = null;
@@ -425,7 +446,7 @@
       }
 
       try {
-        const result = await callGeminiAPIWithModel(prompt, apiKey, model);
+        const result = await callGeminiAPIWithModel(prompt, apiKey, model, promptType);
 
         // ✅ Success — remember this model for next time
         _lastWorkingModel = model;
@@ -473,9 +494,10 @@
       return;
     }
 
-    // Get API key from storage
-    chrome.storage.sync.get(["geminiApiKey"], async (result) => {
+    // Get API key and prompt type from storage
+    chrome.storage.sync.get(["geminiApiKey", "promptType"], async (result) => {
       const apiKey = result.geminiApiKey;
+      const promptType = result.promptType || DEFAULT_PROMPT_TYPE;
       if (!apiKey) {
         showToast("⚙ Set your Gemini API key in the extension popup.", "error");
         return;
@@ -483,7 +505,7 @@
 
       setButtonLoading(true);
       try {
-        const refined = await callGeminiAPI(prompt, apiKey);
+        const refined = await callGeminiAPI(prompt, apiKey, promptType);
         showRefinedModal(prompt, refined);
       } catch (err) {
         console.error("[PromptCraft] API Error:", err);

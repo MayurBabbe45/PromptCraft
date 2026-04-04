@@ -18,6 +18,8 @@
   const modelDot    = document.getElementById("model-dot");
   const modelName   = document.getElementById("model-name");
   const footerModel = document.getElementById("footer-model");
+  const promptTypeInputs = document.querySelectorAll('input[name="prompt-type"]');
+  const PROMPT_TYPE_DEFAULT = "refactor";
 
   // ─── Sanitization & validation ────────────────────────────────────────────
   function sanitizeApiKey(raw) {
@@ -121,7 +123,7 @@
   }
 
   // ─── Load saved state ─────────────────────────────────────────────────────
-  chrome.storage.sync.get(["geminiApiKey", "lastWorkingModel"], (result) => {
+  chrome.storage.sync.get(["geminiApiKey", "lastWorkingModel", "promptType"], (result) => {
     if (chrome.runtime.lastError) return;
     if (result.geminiApiKey) {
       apiInput.value = result.geminiApiKey;
@@ -130,6 +132,10 @@
     }
     if (result.lastWorkingModel) {
       setModelUI("ok", result.lastWorkingModel);
+    }
+    if (result.promptType) {
+      const matching = document.querySelector(`input[name="prompt-type"][value="${result.promptType}"]`);
+      if (matching) matching.checked = true;
     }
   });
 
@@ -208,6 +214,13 @@
   }
 
   apiInput.addEventListener("keydown", (e) => { if (e.key === "Enter") saveBtn.click(); });
+
+  promptTypeInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.checked) return;
+      chrome.storage.sync.set({ promptType: input.value });
+    });
+  });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   function setActiveStatus(active) {
